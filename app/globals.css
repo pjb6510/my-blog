@@ -145,3 +145,33 @@ body {
   font-size: 0.85rem;
 }
 
+/* Reset inline-code styling inside fenced blocks so the pre background wins. */
+.prose pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+/* Shiki dual-theme output (rehype-pretty-code).
+   Each token carries both --shiki-light and --shiki-dark; pick by .dark. */
+.prose pre code,
+.prose pre code span {
+  color: var(--shiki-light);
+}
+
+.dark .prose pre code,
+.dark .prose pre code span {
+  color: var(--shiki-dark);
+}
+
+/* Per-line block from rehype-pretty-code so line-padding doesn't fight pre padding. */
+.prose pre code[data-line-numbers] {
+  counter-reset: line;
+}
+
+.prose pre code [data-line] {
+  display: inline-block;
+  width: 100%;
+}
+

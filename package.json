@@ -25,6 +25,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "rehype-pretty-code": "^0.14.3",
+    "shiki": "^4.0.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
