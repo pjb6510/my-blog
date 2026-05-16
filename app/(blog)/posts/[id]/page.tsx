@@ -8,17 +8,17 @@ export const dynamicParams = false;
 
 export async function generateStaticParams() {
   const posts = await getAllPosts();
-  return posts.map((p) => ({ slug: p.slug }));
+  return posts.map((p) => ({ id: p.id }));
 }
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ id: string }>;
 }) {
-  const { slug } = await params;
+  const { id } = await params;
   try {
-    const { meta } = await loadPost(slug);
+    const { meta } = await loadPost(id);
     return {
       title: meta.title,
       description: meta.excerpt,
@@ -36,13 +36,13 @@ export async function generateMetadata({
 export default async function PostPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ id: string }>;
 }) {
-  const { slug } = await params;
+  const { id } = await params;
   let Post: React.ComponentType;
   let meta: Awaited<ReturnType<typeof loadPost>>["meta"];
   try {
-    const loaded = await loadPost(slug);
+    const loaded = await loadPost(id);
     Post = loaded.Post;
     meta = loaded.meta;
   } catch {

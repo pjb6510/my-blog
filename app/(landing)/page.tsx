@@ -37,9 +37,9 @@ export default async function Landing() {
 
         <ul className="divide-y divide-border">
           {posts.map((post) => (
-            <li key={post.slug}>
+            <li key={post.id}>
               <Link
-                href={`/posts/${post.slug}`}
+                href={`/posts/${post.id}`}
                 className="group grid grid-cols-[auto_1fr] items-baseline gap-x-6 py-6 md:grid-cols-[120px_1fr_auto] md:gap-x-10"
               >
                 <PostDate date={post.date} />

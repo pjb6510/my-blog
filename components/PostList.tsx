@@ -9,9 +9,9 @@ export function PostList({ posts }: { posts: PostMeta[] }) {
   return (
     <ul className="divide-y divide-border">
       {posts.map((post, i) => (
-        <li key={post.slug}>
+        <li key={post.id}>
           <Link
-            href={`/posts/${post.slug}`}
+            href={`/posts/${post.id}`}
             className="group grid grid-cols-[auto_1fr] gap-x-8 py-7 transition-colors md:grid-cols-[110px_1fr_auto] md:gap-x-10"
           >
             <span

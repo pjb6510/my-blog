@@ -49,9 +49,9 @@ export async function Sidebar() {
                 </summary>
                 <ul className="mt-1 ml-4 border-l border-border pl-4">
                   {cat.posts.map((post) => (
-                    <li key={post.slug}>
+                    <li key={post.id}>
                       <Link
-                        href={`/posts/${post.slug}`}
+                        href={`/posts/${post.id}`}
                         className="block py-1 text-sm text-muted transition-colors hover:text-accent"
                       >
                         {post.title}

@@ -5,7 +5,7 @@ import { cache } from "react";
 import type { ComponentType } from "react";
 
 export type PostMeta = {
-  slug: string;
+  id: string;
   title: string;
   date: string;
   category: string;
@@ -16,37 +16,48 @@ export type PostMeta = {
 
 type LoadedPost = {
   default: ComponentType;
-  meta: Omit<PostMeta, "slug">;
+  meta: Omit<PostMeta, "id">;
 };
 
 const POSTS_DIR = path.join(process.cwd(), "content", "posts");
+const FILENAME_RE = /^(\d{4}-\d{2}-\d{2}-\d+)-(.+)\.mdx$/;
 
-async function listSlugs(): Promise<string[]> {
+type FileEntry = { id: string; filename: string };
+
+const listFiles = cache(async (): Promise<FileEntry[]> => {
   const entries = await readdir(POSTS_DIR, { withFileTypes: true });
-  return entries
-    .filter((e) => e.isFile() && e.name.endsWith(".mdx"))
-    .map((e) => e.name.replace(/\.mdx$/, ""));
+  const files: FileEntry[] = [];
+  for (const e of entries) {
+    if (!e.isFile() || !e.name.endsWith(".mdx")) continue;
+    const m = FILENAME_RE.exec(e.name);
+    if (!m) continue;
+    files.push({ id: m[1], filename: e.name.slice(0, -4) });
+  }
+  return files;
+});
+
+async function loadModule(filename: string): Promise<LoadedPost> {
+  return (await import(`@/content/posts/${filename}.mdx`)) as LoadedPost;
 }
 
-async function loadModule(slug: string): Promise<LoadedPost> {
-  return (await import(`@/content/posts/${slug}.mdx`)) as LoadedPost;
-}
-
-export const loadPost = cache(async (slug: string) => {
-  const mod = await loadModule(slug);
-  const meta: PostMeta = { slug, ...mod.meta };
+export const loadPost = cache(async (id: string) => {
+  const files = await listFiles();
+  const file = files.find((f) => f.id === id);
+  if (!file) throw new Error(`Post not found: ${id}`);
+  const mod = await loadModule(file.filename);
+  const meta: PostMeta = { id, ...mod.meta };
   return { Post: mod.default, meta };
 });
 
 export const getAllPosts = cache(async (): Promise<PostMeta[]> => {
-  const slugs = await listSlugs();
+  const files = await listFiles();
   const all = await Promise.all(
-    slugs.map(async (slug) => {
-      const { meta } = await loadModule(slug);
-      return { slug, ...meta };
+    files.map(async ({ id, filename }) => {
+      const { meta } = await loadModule(filename);
+      return { id, ...meta };
     })
   );
-  return all.sort((a, b) => (a.date < b.date ? 1 : -1));
+  return all.sort((a, b) => (a.id < b.id ? 1 : -1));
 });
 
 export const getCategories = cache(async () => {
