@@ -59,6 +59,15 @@
   background: var(--selection);
 }
 
+/* Inside the Q bubble, the page-wide accent-tinted selection blends into the
+   accent-colored background. Invert: paint the selection in the bubble's text
+   color (fully opaque) and flip the text to the bubble color for contrast. */
+.chat-q::selection,
+.chat-q ::selection {
+  background: var(--background);
+  color: var(--accent);
+}
+
 html {
   color-scheme: dark;
 }
