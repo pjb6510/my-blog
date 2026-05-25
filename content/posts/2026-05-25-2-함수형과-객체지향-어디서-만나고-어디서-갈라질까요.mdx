@@ -1,0 +1,405 @@
+export const meta = {
+  title: "함수형과 객체지향, 어디서 만나고 어디서 갈라질까요?",
+  date: "2026-05-25",
+  category: "dev",
+  tags: ["함수형 프로그래밍", "AI 코딩", "소프트웨어 설계", "FCIS", "DOP"],
+  excerpt: "공유하는 토대, 갈라지는 방향, 그리고 FCIS/DOP",
+  series: { name: "함수형 프로그래밍, 실무에서 가능할까요?", order: 2 },
+};
+
+> 이 글은 "함수형 프로그래밍, 실무에서 가능할까요?" 시리즈의 두 번째 글이에요. 1편에서 FCIS/DOP를 "함수형의 장점은 취하고 단점은 회피하는 합의점"으로 소개했는데, 이번 글에서는 그 *합의점*이 왜 필요한지를 OOP와 FP의 구조 분석으로 짚어볼게요. 구체적인 적용은 다음 글에서 다룰 예정이에요.
+
+## 들어가며: "둘은 배타적이지 않다"는 말의 위화감
+
+OOP와 FP를 비교하는 글을 읽다 보면 자주 마주치는 결론이 있어요. "둘은 배타적이지 않다", "각자의 장점을 취해서 적절히 섞으면 된다"는 식의 마무리요. 틀린 말은 아닌데, 어딘가 위화감이 듭니다. 정말 그렇다면 왜 한 코드베이스 안에서 두 스타일을 진지하게 섞으려 할 때마다 어색한 경계가 생길까요?
+
+이 위화감을 한 문장으로 정리하면 이래요. **두 패러다임은 추구하는 가치 수준에서는 서로 충돌하지 않지만, 설계 결정 수준에서는 배타적인 지점들이 있다.** 그리고 그 배타적인 지점들이 한 모델 안에서 공존하려 할 때 어색함이 생기는 거예요.
+
+이 글에서는 두 패러다임의 구조를 *공통점*과 *차이점*으로 나눠 분석해볼게요. 그리고 그 분석 위에서 1편에서 소개한 FCIS/DOP가 왜 자연스러운 합의점이 되는지를 짚어볼 거예요.
+
+## 두 패러다임이 정말 추구하는 것
+
+먼저 각 패러다임이 본래 무엇을 지향하는지부터 정리해볼게요.
+
+- **OOP**: 데이터와 그 데이터를 다루는 동작을 객체로 묶어 관리한다. 객체가 자기 상태를 직접 관리하고, 바깥에서는 정해진 방법으로만 접근하게 한다.
+- **FP**: 순수 함수와 부수효과를 분리하고, 계산을 값의 변환으로 표현한다. 부수효과는 가능한 한 가장자리로 밀어낸다.
+
+이 두 지향은 같은 축 위에 있지 않아요. "데이터와 동작을 묶을지 분리할지"와 "부수효과를 어떻게 다룰지"는 다른 차원의 질문이거든요. 그래서 **패러다임 수준에서는 서로 다른 질문에 답한다**는 말이 맞습니다.
+
+문제는 이 추상적 구분이 코드 수준의 호환성을 보장하지 않는다는 점이에요. 같은 가치(예: 외부와 내부의 분리)를 추구하더라도 그것을 구현하는 방식이 달라지고, 같은 도구(예: 타입)를 쓰더라도 그것을 향하는 방향이 갈라지거든요. 이제 공통점과 차이점으로 나눠 살펴볼게요.
+
+## 공유하는 토대: 4가지 공통점
+
+먼저 두 패러다임이 _같은 가치를 다른 표현으로_ 추구하는 영역부터 볼게요. 여기서는 OOP 코드를 FP 코드로 거의 기계적으로 변환할 수 있어요.
+
+### 1. 외부 인터페이스와 내부 구현의 분리
+
+밖으로 노출할 것과 안에 숨길 것을 나누는 일은 양쪽 다 핵심이에요. 호출하는 쪽은 동작만 알고, 그 동작이 어떤 헬퍼와 어떤 순서로 만들어졌는지는 모르게 하려는 거죠. 그래야 내부 구현이 바뀌어도 호출부가 흔들리지 않아요.
+
+다만 *공개의 단위*가 달라요. OOP는 **클래스**가 단위예요. 헬퍼 메서드는 `private`으로 숨기고, 외부에 보여줄 메서드만 `public`으로 노출하죠. 안과 밖의 경계가 클래스 한 덩어리 안에 있습니다. FP는 **모듈**이 단위예요. 모듈에서 무엇을 `export`할지로 경계가 정해져요. `export`하지 않은 함수는 모듈 바깥에서 보이지 않으니, 외부에서는 공개된 함수만 호출할 수 있어요.
+
+```typescript
+// OOP: 헬퍼 메서드는 private, calculate만 public
+class PriceCalculator {
+  constructor(private taxRate: number) {}
+
+  private applyDiscount(price: number, rate: number): number {
+    return price * (1 - rate);
+  }
+  private applyTax(price: number): number {
+    return price * (1 + this.taxRate);
+  }
+
+  calculate(items: Item[], discountRate: number): number {
+    const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+    return this.applyTax(this.applyDiscount(subtotal, discountRate));
+  }
+}
+
+// FP: 헬퍼는 export 안 하고, calculate만 export
+const applyDiscount = (price: number, rate: number): number =>
+  price * (1 - rate);
+const applyTax = (price: number, taxRate: number): number =>
+  price * (1 + taxRate);
+
+export const calculate = (
+  items: Item[],
+  discountRate: number,
+  taxRate: number,
+): number => {
+  const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+  return applyTax(applyDiscount(subtotal, discountRate), taxRate);
+};
+```
+
+OOP 쪽은 `private` 키워드가 "이 메서드는 클래스 밖에서 부를 수 없다"를 직접 말해줘요. FP 쪽은 `applyDiscount`와 `applyTax`가 `export` 되어 있지 않아서, 모듈 바깥의 코드는 이 함수들의 존재 자체를 모르죠. 호출부가 볼 수 있는 건 양쪽 다 `calculate` 하나뿐이에요.
+
+이렇게 만들어두면 나중에 할인 정책을 바꾸거나, 누진세 같은 다른 계산 단계를 끼워 넣더라도 호출부의 코드는 그대로예요. 단위가 클래스냐 모듈이냐의 차이지, "외부 인터페이스와 내부 구현을 분리한다"는 의도 자체는 같아요.
+
+### 2. 합성
+
+작은 단위를 조립해 큰 동작을 만든다는 발상도 공통이에요. OOP는 객체 합성(has-a), 상속, 인터페이스 구현, 믹스인, 데코레이터 등 합성의 방법이 다양하고, FP는 함수 합성(`pipe`, `compose`)을 중심으로 비교적 단일한 방식을 써요. 수단의 가짓수는 다르지만, "작은 것을 엮어 큰 것을 만든다"는 사고 자체는 같습니다.
+
+### 3. 타입을 통한 계약
+
+"이 경계를 넘는 값은 이런 능력을 갖는다"는 계약을 타입으로 표현하는 것도 공통이에요. OOP는 인터페이스를 클래스가 구현하게 해서 *데이터에 능력을 부착*하고, FP는 능력을 별도의 객체로 정의해 _함수 인자로 넘겨줍니다_.
+
+```typescript
+// OOP: Version이 Comparable을 구현 — 데이터에 능력이 부착됨
+interface Comparable<T> {
+  compareTo(other: T): number;
+}
+class Version implements Comparable<Version> {
+  constructor(
+    private major: number,
+    private minor: number,
+  ) {}
+  compareTo(other: Version): number {
+    return this.major !== other.major
+      ? this.major - other.major
+      : this.minor - other.minor;
+  }
+}
+sort(versions); // versions의 각 원소가 compareTo를 들고 있음
+
+// FP: 능력을 별도 객체로 분리해서 인자로 전달
+type Ord<T> = { compare: (a: T, b: T) => number };
+type Version = { major: number; minor: number };
+
+const ordVersion: Ord<Version> = {
+  compare: (a, b) =>
+    a.major !== b.major ? a.major - b.major : a.minor - b.minor,
+};
+sort(ordVersion, versions); // 비교 능력을 별도로 넘겨줌
+```
+
+어느 쪽이든 "이 자리에는 이런 능력을 가진 값이 와야 한다"는 약속을 타입으로 적어둔다는 점은 같습니다.
+
+### 4. 의존성 주입
+
+시간·ID 생성·외부 시스템 같은 자원을 코드 안에서 직접 만들지 않고, 바깥에서 받아온다는 원칙도 양쪽 다 공통이에요. OOP는 생성자로 주입하고, FP는 함수 인자로 넘기죠.
+
+```typescript
+// OOP: 생성자로 의존성을 주입
+interface Clock {
+  now(): Date;
+}
+interface IdGen {
+  next(): string;
+}
+
+class OrderFactory {
+  constructor(
+    private clock: Clock,
+    private idGen: IdGen,
+  ) {}
+
+  create(items: OrderItem[]): Order {
+    return {
+      id: this.idGen.next(),
+      createdAt: this.clock.now(),
+      items,
+    };
+  }
+}
+
+// 테스트 시: 가짜 의존성을 주입
+const factory = new OrderFactory(
+  { now: () => new Date("2026-01-01") },
+  { next: () => "test-id-1" },
+);
+
+// FP: 의존성을 함수 인자로 전달
+type Env = {
+  clock: { now: () => Date };
+  idGen: { next: () => string };
+};
+
+const createOrder = (env: Env, items: OrderItem[]): Order => ({
+  id: env.idGen.next(),
+  createdAt: env.clock.now(),
+  items,
+});
+
+// 테스트 시: 가짜 환경을 인자로 넘김
+const testEnv: Env = {
+  clock: { now: () => new Date("2026-01-01") },
+  idGen: { next: () => "test-id-1" },
+};
+const order = createOrder(testEnv, [
+  /* items */
+]);
+```
+
+형태는 달라도 의도는 같아요. `new Date()`나 `crypto.randomUUID()`를 함수 본문 안에서 직접 부르지 말고, 테스트에서 갈아끼울 수 있는 자리에 둔다는 규율이에요.
+
+---
+
+이 네 가지 공통점에서 흥미로운 점은, **이 영역 안에서는** OOP 버전과 FP 버전이 거의 **기계적으로 상호변환된다**는 거예요. `class`를 `type + 함수들`로, `interface`를 `record 타입`으로 바꾸면 대체로 그대로 작동해요. 이게 "둘은 배타적이지 않다"는 말이 설득력 있게 들리는 이유예요.
+
+## 갈라지는 지점: 6가지 차이점
+
+그런데 같은 도구로도 정반대 방향의 설계가 나오는 영역들이 있어요. 여기서는 한쪽을 선택하면 다른 쪽 선택과 호환되지 않습니다.
+
+### 1. 가변성 모델
+
+같은 데이터가 시간에 따라 바뀐다는 사실을 OOP는 *객체 자신의 변화*로 표현해요. 객체의 정체성은 그대로 유지되고, 그 안의 값이 바뀌죠. FP는 *새로운 값의 생성*으로 표현해요. 값은 한 번 만들어지면 바뀌지 않고, 변화는 함수가 새 값을 반환하는 방식으로 일어나요.
+
+```typescript
+// OOP: cart는 그대로지만, 그 안이 바뀐다
+const cart = new ShoppingCart();
+cart.addItem({ id: "1", price: 100 });
+cart.addItem({ id: "2", price: 200 });
+
+// FP: 매번 새로운 값이 만들어진다
+const c0: Cart = [];
+const c1 = addItem(c0, { id: "1", price: 100 });
+const c2 = addItem(c1, { id: "2", price: 200 });
+```
+
+OOP는 "같은 cart가 변해간다"고 보고, FP는 "서로 다른 값들이 존재한다"고 봐요. 단순한 스타일 차이가 아니에요. 정체성이라는 개념을 데이터 모델의 일부로 둘 것인가의 문제고, 동시성 처리나 변경 추적까지 결과가 달라져요.
+
+### 2. 다형성의 방향
+
+OOP에서는 데이터가 함수를 들고 다녀요. `circle.area()`처럼 객체 자신이 `area` 메서드를 갖고 있고, 어떤 구현이 실행될지는 데이터의 타입이 결정하죠. FP에서는 반대로, 함수가 데이터를 들여다봐요. `area(shape)`라는 함수가 `shape.kind`를 보고 어느 가지로 분기할지 결정해요.
+
+```typescript
+// OOP: 데이터가 함수를 들고 다닌다
+interface Shape {
+  area(): number;
+}
+class Circle implements Shape {
+  constructor(private radius: number) {}
+  area() {
+    return Math.PI * this.radius ** 2;
+  }
+}
+class Square implements Shape {
+  constructor(private side: number) {}
+  area() {
+    return this.side ** 2;
+  }
+}
+
+// FP: 함수가 데이터를 골라본다
+type Shape =
+  | { kind: "circle"; radius: number }
+  | { kind: "square"; side: number };
+
+const area = (s: Shape): number => {
+  switch (s.kind) {
+    case "circle":
+      return Math.PI * s.radius ** 2;
+    case "square":
+      return s.side ** 2;
+  }
+};
+```
+
+이 방향 차이가 *확장의 쉬움*을 정반대로 만들어요. **새로운 도형을 추가**할 때 OOP는 클래스 하나만 더 만들면 끝나요(기존 코드는 안 건드림). 반면 FP는 `Shape` 타입에 새 가지를 추가하고 _모든 `area`·`perimeter`·... 함수의 `switch`에 case를 더해야_ 해요. 반대로 **새로운 연산을 추가**할 때(예: `perimeter`)는 FP는 함수 하나만 더 쓰면 끝나지만, OOP는 모든 클래스에 메서드를 추가해야 해요.
+
+이걸 *expression problem*이라고 부르는데, 두 패러다임이 같은 트레이드오프를 _정확히 반대 방향으로_ 선택한 결과예요. 한 쪽이 우월하다기보다, 어떤 변화가 자주 일어나는 도메인이냐에 따라 답이 달라져요.
+
+### 3. 데이터와 동작의 결합도
+
+2번이 *디스패치의 방향*에 대한 차이라면, 3번은 *결합 자체의 정당성*에 대한 차이예요. 어느 쪽에서 분기하느냐를 넘어, 그렇게 묶는 것이 옳은가를 묻는 거죠.
+
+OOP는 데이터와 동작을 _묶는 게_ 미덕이에요. 데이터에 그 데이터를 다루는 규칙을 함께 두면, 외부에서 데이터를 잘못된 방식으로 다룰 가능성을 차단할 수 있죠. 그래서 동작이 없는 데이터(anemic model)는 *규칙이 흩어져버린 상태*라며 안티패턴으로 비판받아요.
+
+FP는 정반대로, 데이터와 동작을 _분리하는 게_ 미덕이에요. 데이터는 누구나 들여다볼 수 있는 투명한 레코드로 두고, 그 데이터에 적용할 함수는 자유롭게 작성해요. 데이터가 동작에 묶여 있지 않으니, 일반 변환 함수(map, filter, reduce 등)를 같은 모양의 데이터에 그대로 적용할 수 있고, 새 동작을 추가할 때 기존 데이터에 손대지 않아도 돼요.
+
+그래서 같은 코드를 두고 한 쪽은 "껍데기뿐이다"라고 비판하고 다른 쪽은 "투명해서 좋다"고 칭찬해요. **미학 자체가 반대**인 거예요.
+
+### 4. 부수효과를 다루는 방식
+
+OOP는 부수효과를 객체 경계 안으로 _숨겨요_. 호출자는 어떤 자원을 쓰는지 모른 채 메서드 하나만 부르면 되죠. *호출자에게 효과를 보이지 않게 하는 것이 좋은 캡슐화*라는 입장이에요. FP는 반대로 부수효과를 _시그니처에 드러내요_. 함수 자체는 효과를 일으키지 않고 *"앞으로 할 일의 설명"을 값으로 반환*해요. 실제 실행은 가장 바깥에서 한 번에 일어나죠.
+
+```typescript
+// OOP: 메서드를 부르는 순간 효과가 일어남
+class UserService {
+  constructor(
+    private db: Database,
+    private emailer: Emailer,
+    private logger: Logger,
+  ) {}
+
+  async register(email: string, password: string): Promise<User> {
+    this.logger.info(`Registering ${email}`);
+    const user = await this.db.insertUser({ email, password });
+    await this.emailer.sendWelcome(email);
+    return user;
+  }
+}
+
+// 호출부:
+const user = await userService.register("a@b.com", "pw");
+// register를 호출한 시점에 이미 DB·이메일·로깅이 다 일어남.
+// 시그니처만 봐선 무엇이 일어났는지 알 수 없음.
+
+// FP: 효과를 IO 값으로 포장 — 호출해도 즉시 실행되지 않음
+type IO<A> = () => Promise<A>;
+
+const log =
+  (msg: string): IO<void> =>
+  async () => {
+    console.log(msg);
+  };
+
+const insertUser =
+  (input: UserInput): IO<User> =>
+  () =>
+    db.insert(input);
+
+const sendWelcome =
+  (email: string): IO<void> =>
+  () =>
+    emailer.send(email);
+
+const register =
+  (email: string, password: string): IO<User> =>
+  async () => {
+    await log(`Registering ${email}`)();
+    const user = await insertUser({ email, password })();
+    await sendWelcome(email)();
+    return user;
+  };
+
+// 호출부:
+const program = register("a@b.com", "pw");
+// 여기까지는 아무 일도 안 일어남. program은 "할 일의 설명"일 뿐.
+const user = await program();
+// 이 시점에 비로소 DB·이메일·로깅이 실행됨.
+// 시그니처 IO<User>가 "이 함수는 효과를 일으킨다"고 외침.
+```
+
+핵심 차이는 *언제 효과가 일어나는가*예요. OOP의 `userService.register(...)`는 호출하는 순간 DB·이메일·로깅이 다 일어나요. 시그니처는 그저 `Promise<User>`라서 무엇이 일어났는지 안 보이고요. FP의 `register(...)`는 호출해도 아무 일도 안 일어나고, `IO<User>`라는 _"앞으로 할 일"_ 값을 만들 뿐이에요. 그 값을 명시적으로 실행할 때(`await program()`) 비로소 효과가 일어나요. 시그니처에 `IO`가 박혀 있어서, *이 함수는 효과를 일으킨다*는 사실이 호출자에게 강제로 보입니다.
+
+"부수효과는 호출자에게 숨겨져야 하는가, 드러나야 하는가" — 이건 화해가 안 되는 질문이에요. 한 쪽 입장에서 다른 쪽 코드는 _경솔하게 효과를 노출_하거나 _책임을 숨겨버린_ 코드로 보여요.
+
+### 5. 레이어 경계의 기준
+
+같은 도메인을 코딩해도, *코드를 어떻게 묶을지*의 1차 기준이 달라요. OOP는 보통 **명사**(도메인 개체)를 따라 경계를 그어요. `Order`라는 개체에 관련된 데이터·동작·저장소를 한 디렉토리로 묶죠. FP는 보통 **동사**(변환의 단계)를 따라 경계를 그어요. 주문 처리라는 흐름을 *파싱 → 검증 → 가격 계산 → 저장*이라는 단계로 나누고, 각 단계를 한 디렉토리로 묶고요.
+
+```text
+// OOP 스타일: 명사가 1차 기준
+src/
+  order/
+    Order.ts
+    OrderService.ts
+    OrderRepository.ts
+  customer/
+    Customer.ts
+    CustomerService.ts
+
+// FP 스타일: 동사가 1차 기준
+src/
+  parsing/
+    parseOrderRequest.ts
+  validation/
+    validateOrder.ts
+  pricing/
+    calculatePricing.ts
+  persistence/
+    persistOrder.ts
+  pipeline/
+    processOrder.ts    // 위의 함수들을 합성
+```
+
+이건 절대 원칙이 아니라 *경향성*이에요 — OOP에서도 유스케이스나 기능 단위로 자르는 패턴이 있고, FP에서도 도메인 개체별로 모듈을 둘 수 있어요. 다만 *1차 응집 기준이 무엇인가*를 묻는다면, OOP는 *"어떤 데이터를 다루는가"*가 자연스럽고, FP는 *"어떤 변환이 일어나는가"*가 자연스러워요. 그리고 이 1차 기준이 폴더 구조뿐 아니라 *생각의 순서*까지 결정해요 — OOP는 `Order`라는 개체부터 떠올리고 그 동작을 채워 넣고, FP는 *흐름*부터 떠올리고 각 단계의 함수를 채워 넣죠.
+
+### 6. 시간을 다루는 모델
+
+1번이 *한 시점의 데이터*에 대한 차이라면, 6번은 *시간 축에 걸친 이력*에 대한 차이예요. 시스템이 거쳐온 과거의 상태들을 어떻게 다루느냐의 문제죠.
+
+OOP에서 객체는 보통 _"지금"만 알아요_. 객체의 상태가 변할 때 이전 상태는 사라지죠. `account.balance`는 현재 잔액이고, 어제의 잔액은 어딘가에 따로 기록해두지 않으면 알 수 없어요. FP는 변화를 *불변 이벤트들의 시퀀스*로 표현하는 게 자연스러워요. 시퀀스 자체가 이력이라서, 임의의 과거 시점도 다시 계산할 수 있어요.
+
+```typescript
+// OOP: account는 "지금"만 안다
+const account = new Account();
+account.deposit(100);
+account.withdraw(30);
+
+// FP: 모든 시점을 안다
+const events: AccountEvent[] = [
+  { type: "deposited", amount: 100, at: jan1 },
+  { type: "withdrawn", amount: 30, at: jan2 },
+];
+const currentState = events.reduce(apply, { balance: 0 });
+const stateAtJan1 = events
+  .filter((e) => e.at <= jan1)
+  .reduce(apply, { balance: 0 });
+```
+
+OOP의 `account`는 잔액의 *현재 값*만 들고 있어요. 어제 잔액이 얼마였는지 알려면 별도의 거래 로그를 따로 만들어야 하죠. FP의 `events`는 그 자체가 이력이라서, `events.filter(e => e.at <= jan1).reduce(apply, ...)` 같은 식으로 *임의 시점의 잔액*을 다시 계산할 수 있어요.
+
+이 차이가 *기억의 단위*에서 갈라져요. OOP는 *최신 상태*를 기억하고 변경 이력은 부차적이에요. FP는 *변화 자체*를 기억하고 현재 상태는 계산으로 얻어지죠. ORM과 event sourcing(전자는 최신 상태만, 후자는 변화 이력 자체를 저장하는 방식)이 잘 안 섞이는 근본 이유가 여기예요 — ORM은 1번의 가변성 모델까지 함께 끌고 오거든요.
+
+## 공통점과 차이점은 무게가 다르다
+
+여기서 흥미로운 관찰 하나를 짚어볼게요. 공통점과 차이점은 **무게가 달라요**.
+
+공통점에서 OOP 코드를 FP 코드로 바꾸는 건 *국소적인 변환*이에요. `class PriceCalculator`를 `calculate 함수 + 모듈 내부의 헬퍼들`로 바꿔도 호출자 코드는 거의 그대로예요. 외부와 내부를 분리한다는 의도는 보존되고, 표현만 달라지죠.
+
+반면 차이점에서의 "변환"은 코드베이스 전체를 끌고 가요. `ShoppingCart` 클래스를 `Cart` 값 시퀀스로 바꾸려면 호출자가 상태를 어디에 보관할지, 변경 이력을 어떻게 다룰지, 동시 수정을 어떻게 조정할지가 _모두 같이_ 바뀌어야 해요. 시간 모델을 바꾸는 건 단순한 리팩토링이 아니라 아키텍처 변경입니다.
+
+이 무게의 차이가 "두 패러다임을 적당히 섞는다"가 어디서 실패하는지 정확히 알려줘요. 공통점에서는 섞어도 문제가 없어요(어차피 의도가 같으니까). 문제는 **차이점에서 두 스타일이 한 모델에 공존하려 할 때** 생겨요. 같은 `Order` 타입을 어떤 함수는 가변으로 다루고 어떤 함수는 불변으로 다루면, 호출자의 인지 부담이 폭증하고 미묘한 버그가 새어 들어와요.
+
+흔히 이 충돌을 피하려는 절충안이 있어요. **객체로 상태를 관리하되, 계산은 순수하게 만드는** 패턴이에요. 메서드 자체를 순수하게 작성해서 mutation 없이 새 객체를 반환하거나, 계산 부분을 별도의 순수 함수로 빼내는 식이죠. 어느 쪽이든 *"계산은 순수하게, 상태는 객체에"*라는 발상은 같아요. 이게 "OOP와 FP를 적당히 섞는다"가 실무에서 가장 흔히 가리키는 형태예요.
+
+이 패턴 자체는 분명히 가치가 있어요. 하지만 한계도 있어요 — *어디까지를 객체로 두고 어디서부터 순수하게 만들지*에 대한 일관된 규율이 없으면, 같은 코드베이스에서 함수마다 경계가 달라지고 결국 차이점에서 오는 충돌(가변/불변, 효과 숨김/드러냄)이 그대로 새어 들어와요. 그래서 "섞는다"보다 "_어디서_ 가르는지를 일관되게 정한다"가 더 정확한 문제 정의예요.
+
+즉, 두 패러다임을 동등하게 섞는다는 발상은 차이점에서 무너져요. 남는 길은 **공통점은 공유하되, 차이점에서는 *어디서 가르는지*를 일관되게 정하는** 것뿐이에요. 그런데 그 경계를 *어디서, 어떻게* 정해야 할까요?
+
+## 그렇다면 어떻게 분리할까
+
+답은 **"섞지 말고 분리하라"**예요. 공통점은 양쪽에서 그대로 활용하고, 차이점은 *어디서 가르는지*를 일관된 규율로 정하는 거죠. 그 규율을 구체적인 코드 구조로 만든 게 1편에서 소개한 FCIS(Functional Core, Imperative Shell)와 DOP(Data-Oriented Programming)예요.
+
+간단히 짚자면, FCIS는 **차이점의 충돌을 *위치*로 분리**해요. 가변성·부수효과·레이어 경계 같은 차이점들을 한 모델 안에서 다투지 않게, Core(순수 함수의 영역)와 Shell(I/O와 상태의 영역)에 각각 할당하죠. DOP는 **위치 분리로 해결되지 않는 차이점에서 한쪽을 명시적으로 선택**해요. 데이터-동작 결합도, 다형성, 시간 모델에서 FP 쪽 사고를 차용하는 거예요.
+
+이게 "둘을 동등하게 섞는다"가 아니라 **"역할을 나눈다"**의 정확한 의미예요. 첫 글에서 "함수형의 장점은 취하고 단점은 회피하는 합의점"이라고 표현한 것은 바로 이 분리에서 나오는 거고요.
+
+## 마치며
+
+이 글에서는 OOP와 FP의 구조를 공통점과 차이점으로 나눠보고, 두 영역이 *무게가 다르다*는 점을 짚어봤어요. 핵심은 **공통점은 공유하되, 차이점은 위치로 분리하거나 한쪽을 명시적으로 선택한다**는 원칙이에요. "둘을 적당히 섞는다"가 막연한 답인 이유, 그리고 *어디서 가르는지를 일관되게 정하는 것*이 더 정확한 문제 정의인 이유가 여기에 있어요.
+
+다음 글에서는 FCIS/DOP가 이 분리를 실제로 어떻게 구현하는지 — Core와 Shell을 코드에서 어디에 긋고, DOP의 두 원칙을 TypeScript에서 어떻게 표현하는지, 흔히 만나는 함정은 무엇인지를 구체적인 예제로 다룰 예정이에요.
