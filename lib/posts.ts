@@ -12,12 +12,19 @@ export type PostMeta = {
   tags?: string[];
   cover?: string;
   excerpt?: string;
+  isHidden: boolean;
 };
+
+type RawMeta = Omit<PostMeta, "id" | "isHidden"> & { isHidden?: boolean };
 
 type LoadedPost = {
   default: ComponentType;
-  meta: Omit<PostMeta, "id">;
+  meta: RawMeta;
 };
+
+function normalizeMeta(id: string, raw: RawMeta): PostMeta {
+  return { id, ...raw, isHidden: raw.isHidden ?? false };
+}
 
 const POSTS_DIR = path.join(process.cwd(), "content", "posts");
 const FILENAME_RE = /^(\d{4}-\d{2}-\d{2}-\d+)-(.+)\.mdx$/;
@@ -45,7 +52,7 @@ export const loadPost = cache(async (id: string) => {
   const file = files.find((f) => f.id === id);
   if (!file) throw new Error(`Post not found: ${id}`);
   const mod = await loadModule(file.filename);
-  const meta: PostMeta = { id, ...mod.meta };
+  const meta = normalizeMeta(id, mod.meta);
   return { Post: mod.default, meta };
 });
 
@@ -54,10 +61,12 @@ export const getAllPosts = cache(async (): Promise<PostMeta[]> => {
   const all = await Promise.all(
     files.map(async ({ id, filename }) => {
       const { meta } = await loadModule(filename);
-      return { id, ...meta };
+      return normalizeMeta(id, meta);
     })
   );
-  return all.sort((a, b) => (a.id < b.id ? 1 : -1));
+  return all
+    .filter((p) => !p.isHidden)
+    .sort((a, b) => (a.id < b.id ? 1 : -1));
 });
 
 export const getCategories = cache(async () => {
