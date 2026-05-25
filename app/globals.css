@@ -142,6 +142,8 @@ body {
   background: var(--surface);
   padding: 0.15rem 0.35rem;
   border-radius: 0.25rem;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
 }
 
 .prose code::before,
