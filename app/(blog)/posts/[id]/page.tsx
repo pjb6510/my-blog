@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllPosts, loadPost } from "@/lib/posts";
 import { PostDate, Tags } from "@/components/PostMeta";
+import { Comments } from "@/components/Comments";
 
 export const dynamicParams = false;
 
@@ -99,6 +100,10 @@ export default async function PostPage({
       <div className="prose prose-invert max-w-none">
         <Post />
       </div>
+
+      <section className="mt-20 border-t border-border pt-10">
+        <Comments />
+      </section>
 
       <footer className="mt-20 border-t border-border pt-10">
         <Link
