@@ -26,7 +26,7 @@ Next.js 16 (App Router) + React 19 + Tailwind CSS v4 + `@next/mdx`. TypeScript s
 - `default` — 렌더된 MDX 컴포넌트
 - `meta` — frontmatter 역할 객체 (`title`, `date`, `category`, optional `tags`, `cover`, `excerpt`)
 
-**파일명 규칙**: `YYYY-MM-DD-N-제목.mdx`. 앞 부분 `YYYY-MM-DD-N`이 포스트의 영구 **id**이자 URL slug (`/posts/<id>`)다. `N`은 그 날짜 내 순번(1부터). 파일명은 `lib/posts.ts`의 `FILENAME_RE = /^(\d{4}-\d{2}-\d{2}-\d+)-(.+)\.mdx$/`로 파싱되며, 이 패턴에 맞지 않는 파일은 무시된다. id는 한 번 정하면 절대 바꾸지 않음 — 제목/내용은 자유롭게 수정해도 URL 안 깨짐. 제목 부분(파일명 뒷부분)은 한글 자유.
+**파일명 규칙**: `YYYY-MM-DD-N-제목.mdx`. 앞 부분 `YYYY-MM-DD-N`이 포스트의 영구 **id**이자 URL slug (`/posts/<id>`)다. `N`은 그 날짜 내 순번(1부터). 파일명은 `lib/posts.ts`의 `FILENAME_RE = /^(\d{4}-\d{2}-\d{2}-\d+)-(.+)\.mdx$/`로 파싱되며, 이 패턴에 맞지 않는 파일은 무시된다. id는 한 번 정하면 절대 바꾸지 않음 — 제목/내용은 자유롭게 수정해도 URL 안 깨짐. 제목 부분(파일명 뒷부분)은 한글 가능하되 **짧게 유지할 것(대략 한글 8자 이내)**. Turbopack이 asset ident를 바이트 단위로 슬라이스하다가 멀티바이트 한글 중간에 떨어지면 빌드 panic이 나는 버그가 있다 (`start byte index N is not a char boundary`). URL은 어차피 id 기반이라 파일명에 긴 제목을 넣을 이유가 없음 — 본문 `meta.title`에 풀 제목을 두면 됨.
 
 `lib/posts.ts`가 콘텐츠 접근의 단일 진입점이다. `"server-only"`이며 요청 단위 중복 호출을 막기 위해 `React.cache`를 사용한다. `loadModule`은 `await import(\`@/content/posts/${filename}.mdx\`)`로 동적 import 하고 (`filename`은 확장자 제외 전체 파일명), Next.js MDX 로더(`next.config.mjs`의 `@next/mdx`)가 빌드 시점에 각 파일을 컴파일한다. `loadPost(id)`는 파일 목록을 스캔해서 id로 파일을 찾은 뒤 동적 import 한다.
 
