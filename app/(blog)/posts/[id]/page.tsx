@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getAllPosts, loadPost } from "@/lib/posts";
 import { PostDate, Tags } from "@/components/PostMeta";
 import { Comments } from "@/components/Comments";
+import { SeriesNav } from "@/components/SeriesNav";
 
 export const dynamicParams = false;
 
@@ -71,6 +72,12 @@ export default async function PostPage({
           <PostDate date={meta.date} />
         </div>
 
+        {meta.series ? (
+          <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-accent">
+            ─ {meta.series.name} · {String(meta.series.order).padStart(2, "0")}
+          </div>
+        ) : null}
+
         <h1 className="font-serif text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.05] tracking-[-0.02em] text-foreground">
           {meta.title}
         </h1>
@@ -83,6 +90,10 @@ export default async function PostPage({
 
         <Tags tags={meta.tags} />
       </header>
+
+      {meta.series ? (
+        <SeriesNav seriesName={meta.series.name} currentId={meta.id} />
+      ) : null}
 
       {meta.cover ? (
         <div className="mb-12 -mx-6 overflow-hidden md:mx-0 md:rounded-md">

@@ -4,6 +4,11 @@ import path from "node:path";
 import { cache } from "react";
 import type { ComponentType } from "react";
 
+export type SeriesRef = {
+  name: string;
+  order: number;
+};
+
 export type PostMeta = {
   id: string;
   title: string;
@@ -12,6 +17,7 @@ export type PostMeta = {
   tags?: string[];
   cover?: string;
   excerpt?: string;
+  series?: SeriesRef;
   isHidden: boolean;
 };
 
@@ -90,4 +96,11 @@ export async function getPostsByCategory(category: string) {
 export async function getCategorySlugs() {
   const posts = await getAllPosts();
   return Array.from(new Set(posts.map((p) => p.category)));
+}
+
+export async function getSeriesPosts(name: string): Promise<PostMeta[]> {
+  const posts = await getAllPosts();
+  return posts
+    .filter((p) => p.series?.name === name)
+    .sort((a, b) => (a.series!.order - b.series!.order));
 }
