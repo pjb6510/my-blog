@@ -4,4 +4,5 @@ export const site = {
   description: "Jeongbeen 개인 블로그",
   author: "Jeongbeen",
   gitUrl: "https://github.com/pjb6510",
+  url: "https://littleoften.blog",
 } as const;

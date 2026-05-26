@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FaGithub, FaRss } from "react-icons/fa";
 import { site } from "@/lib/site";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -22,14 +23,22 @@ export function TopBar() {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-3">
+        <nav className="flex items-center gap-4">
+          <a
+            href="/rss.xml"
+            aria-label="RSS 피드"
+            className="text-muted transition-colors hover:text-accent"
+          >
+            <FaRss size={15} />
+          </a>
           <a
             href={site.gitUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted transition-colors hover:text-accent"
+            aria-label="GitHub"
+            className="text-muted transition-colors hover:text-accent"
           >
-            Git ↗
+            <FaGithub size={17} />
           </a>
           <ThemeToggle />
         </nav>

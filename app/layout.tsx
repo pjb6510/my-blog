@@ -18,6 +18,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: { default: site.title, template: `%s — ${site.title}` },
   description: site.description,
+  alternates: {
+    types: {
+      "application/rss+xml": [{ url: "/rss.xml", title: site.title }],
+    },
+  },
 };
 
 export default function RootLayout({

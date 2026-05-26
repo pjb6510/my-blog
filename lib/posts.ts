@@ -1,5 +1,5 @@
 import "server-only";
-import { readdir } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { cache } from "react";
 import type { ComponentType } from "react";
@@ -97,6 +97,38 @@ export async function getCategorySlugs() {
   const posts = await getAllPosts();
   return Array.from(new Set(posts.map((p) => p.category)));
 }
+
+function stripMdxToPlainText(raw: string): string {
+  let text = raw;
+  text = text.replace(/^\s*export\s+const\s+meta\s*=\s*\{[\s\S]*?\};\s*/, "");
+  text = text.replace(/^(import|export)\s+.*$/gm, "");
+  text = text.replace(/```[\s\S]*?```/g, "");
+  text = text.replace(/`[^`]*`/g, "");
+  text = text.replace(/!\[[^\]]*\]\([^)]*\)/g, "");
+  text = text.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
+  text = text.replace(/^\s*#{1,6}\s+/gm, "");
+  text = text.replace(/^\s*>\s?/gm, "");
+  text = text.replace(/(\*\*|__)(.*?)\1/g, "$2");
+  text = text.replace(/(\*|_)(.*?)\1/g, "$2");
+  text = text.replace(/<[^>]+>/g, "");
+  text = text.replace(/\s+/g, " ").trim();
+  return text;
+}
+
+export const getPostBodyPreview = cache(
+  async (id: string, maxLength = 200): Promise<string> => {
+    const files = await listFiles();
+    const file = files.find((f) => f.id === id);
+    if (!file) throw new Error(`Post not found: ${id}`);
+    const raw = await readFile(
+      path.join(POSTS_DIR, `${file.filename}.mdx`),
+      "utf8"
+    );
+    const text = stripMdxToPlainText(raw);
+    if (text.length <= maxLength) return text;
+    return text.slice(0, maxLength).trimEnd() + "…";
+  }
+);
 
 export async function getSeriesPosts(name: string): Promise<PostMeta[]> {
   const posts = await getAllPosts();

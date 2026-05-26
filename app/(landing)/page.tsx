@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FaGithub, FaRss } from "react-icons/fa";
 import { getAllPosts } from "@/lib/posts";
 import { site } from "@/lib/site";
 import { CategoryTag, PostDate } from "@/components/PostMeta";
@@ -61,8 +62,28 @@ export default async function Landing() {
         </ul>
       </section>
 
-      <footer className="mt-auto pt-20 font-mono text-[10px] uppercase tracking-[0.32em] text-subtle">
-        © {new Date().getFullYear()} {site.author}
+      <footer className="mt-auto flex items-baseline justify-between gap-6 pt-20 font-mono text-[10px] uppercase tracking-[0.32em] text-subtle">
+        <span>
+          © {new Date().getFullYear()} {site.author}
+        </span>
+        <nav className="flex items-center gap-5">
+          <a
+            href="/rss.xml"
+            aria-label="RSS 피드"
+            className="transition-colors hover:text-accent"
+          >
+            <FaRss size={15} />
+          </a>
+          <a
+            href={site.gitUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub"
+            className="transition-colors hover:text-accent"
+          >
+            <FaGithub size={17} />
+          </a>
+        </nav>
       </footer>
     </main>
   );
