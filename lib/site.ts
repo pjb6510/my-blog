@@ -5,4 +5,6 @@ export const site = {
   author: "Jeongbeen",
   gitUrl: "https://github.com/pjb6510",
   url: "https://littleoften.blog",
+  locale: "ko_KR",
+  lang: "ko-KR",
 } as const;

@@ -3,12 +3,25 @@ import { FaGithub, FaRss } from "react-icons/fa";
 import { getAllPosts } from "@/lib/posts";
 import { site } from "@/lib/site";
 import { CategoryTag, PostDate } from "@/components/PostMeta";
+import { JsonLd } from "@/components/JsonLd";
 
 export default async function Landing() {
   const posts = (await getAllPosts()).slice(0, 5);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: site.title,
+    alternateName: site.tagline,
+    url: site.url,
+    description: site.description,
+    inLanguage: site.lang,
+    author: { "@type": "Person", name: site.author, url: site.gitUrl },
+  };
+
   return (
     <main className="relative mx-auto flex min-h-dvh max-w-6xl flex-col px-6 pb-20 pt-16 md:px-12 md:pt-24">
+      <JsonLd data={jsonLd} />
       <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-subtle">
         ─ a personal log, est. 2026
       </p>

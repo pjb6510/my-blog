@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCategorySlugs, getPostsByCategory } from "@/lib/posts";
 import { PostList } from "@/components/PostList";
@@ -13,9 +14,13 @@ export async function generateMetadata({
   params,
 }: {
   params: Promise<{ category: string }>;
-}) {
+}): Promise<Metadata> {
   const { category } = await params;
-  return { title: `${category}` };
+  return {
+    title: `${category}`,
+    description: `${category} 카테고리의 글 모음`,
+    alternates: { canonical: `/categories/${category}` },
+  };
 }
 
 export default async function CategoryPage({

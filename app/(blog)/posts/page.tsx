@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import { getAllPosts } from "@/lib/posts";
 import { PostList } from "@/components/PostList";
 
-export const metadata = { title: "전체 글" };
+export const metadata: Metadata = {
+  title: "전체 글",
+  description: "전체 글 아카이브",
+  alternates: { canonical: "/posts" },
+};
 
 export default async function AllPostsPage() {
   const posts = await getAllPosts();

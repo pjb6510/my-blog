@@ -16,11 +16,41 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(site.url),
   title: { default: site.title, template: `%s — ${site.title}` },
   description: site.description,
+  applicationName: site.title,
+  authors: [{ name: site.author, url: site.gitUrl }],
+  creator: site.author,
+  publisher: site.author,
   alternates: {
+    canonical: "/",
     types: {
       "application/rss+xml": [{ url: "/rss.xml", title: site.title }],
+    },
+  },
+  openGraph: {
+    type: "website",
+    siteName: site.title,
+    title: { default: site.title, template: `%s — ${site.title}` },
+    description: site.description,
+    url: site.url,
+    locale: site.locale,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: { default: site.title, template: `%s — ${site.title}` },
+    description: site.description,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
     },
   },
 };

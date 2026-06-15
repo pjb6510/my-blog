@@ -1,10 +1,13 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllPosts, loadPost } from "@/lib/posts";
+import { site } from "@/lib/site";
 import { PostDate, Tags } from "@/components/PostMeta";
 import { Comments } from "@/components/Comments";
 import { SeriesNav } from "@/components/SeriesNav";
+import { JsonLd } from "@/components/JsonLd";
 
 export const dynamicParams = false;
 
@@ -17,17 +20,28 @@ export async function generateMetadata({
   params,
 }: {
   params: Promise<{ id: string }>;
-}) {
+}): Promise<Metadata> {
   const { id } = await params;
   try {
     const { meta } = await loadPost(id);
+    const url = `${site.url}/posts/${id}`;
     return {
       title: meta.title,
       description: meta.excerpt,
+      alternates: { canonical: `/posts/${id}` },
       openGraph: {
+        type: "article",
+        url,
         title: meta.title,
         description: meta.excerpt,
-        images: meta.cover ? [meta.cover] : undefined,
+        publishedTime: meta.date,
+        authors: [site.author],
+        tags: meta.tags,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: meta.title,
+        description: meta.excerpt,
       },
     };
   } catch {
@@ -51,8 +65,42 @@ export default async function PostPage({
     notFound();
   }
 
+  const url = `${site.url}/posts/${id}`;
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      headline: meta.title,
+      description: meta.excerpt,
+      datePublished: meta.date,
+      dateModified: meta.date,
+      inLanguage: site.lang,
+      url,
+      mainEntityOfPage: { "@type": "WebPage", "@id": url },
+      articleSection: meta.category,
+      keywords: meta.tags?.join(", "),
+      author: { "@type": "Person", name: site.author, url: site.gitUrl },
+      publisher: { "@type": "Person", name: site.author, url: site.url },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: site.title, item: site.url },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: meta.category,
+          item: `${site.url}/categories/${encodeURIComponent(meta.category)}`,
+        },
+        { "@type": "ListItem", position: 3, name: meta.title, item: url },
+      ],
+    },
+  ];
+
   return (
     <article className="mx-auto max-w-2xl">
+      <JsonLd data={jsonLd} />
       <Link
         href="/posts"
         className="font-mono text-[10px] uppercase tracking-[0.32em] text-subtle transition-colors hover:text-accent"
