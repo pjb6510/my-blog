@@ -1,6 +1,13 @@
-// PreToolUse(Bash) 훅 — git commit 직전, 윤문 안 된 신규 포스트가 스테이징돼 있으면
+// PreToolUse(Bash) 훅 — git commit 직전, 윤문 안 된 신규 포스트가 커밋에 들어가려 하면
 // 커밋을 거부하고 Claude에게 humanize-korean 윤문을 지시한다.
-// 통과 조건: 신규 포스트 없음 / 'AI와 대화하기' 카테고리뿐 / .git/humanize-ok 센티널 존재(1회용)
+//
+// 이 커밋이 history에 새로 들이는 content/posts/*.mdx 를 두 경로로 모은다:
+//   (a) 이미 staged-added 된 신규 포스트 (git diff --cached --diff-filter=A)
+//   (b) 명령어가 content/posts 를 git add (또는 git add . / -A / --all) 하는 경우,
+//       아직 untracked 인 신규 포스트 — `git add X && git commit` 한 줄 호출을 커버한다.
+//       (훅은 git add 실행 전에 명령어 전체를 가로채므로, (a)만 보면 이 패턴이 빠져나간다.)
+// 통과 조건: 대상 신규 포스트 없음 / 'AI와 대화하기' 카테고리뿐 / .git/humanize-ok 센티널 존재(1회용).
+// 센티널은 커밋 명령과 다른 단계에서 미리 touch 해야 한다(같은 줄에 && 로 묶으면 훅 평가 시점엔 아직 없다).
 // 실행: node (v24 네이티브 TypeScript) — 별도 빌드·tsx 불필요
 
 import { execFileSync } from "node:child_process";
@@ -12,6 +19,17 @@ type HookInput = {
 
 const EXCLUDED_CATEGORY = /category:\s*"AI와 대화하기"/;
 const SENTINEL = ".git/humanize-ok";
+const POSTS_GLOB = "content/posts/*.mdx";
+
+function git(args: string[]): string {
+  return execFileSync("git", ["-c", "core.quotepath=off", ...args], {
+    encoding: "utf8",
+  });
+}
+
+function lines(out: string): string[] {
+  return out.split("\n").filter(Boolean);
+}
 
 function deny(reason: string): never {
   console.log(
@@ -36,21 +54,37 @@ try {
 
 if (!command.includes("git commit")) process.exit(0);
 
-let staged = "";
+// 이 명령이 content/posts 를 스테이징하는가 — untracked 신규 포스트를 후보에 넣을지 판단.
+// content/posts 경로를 직접 add 하거나, git add . / -A / --all 처럼 광범위하게 add 할 때만 true.
+// (무관한 git add src/foo.ts 커밋이 떠도는 draft 포스트 때문에 오탐 거부되는 것을 막는다.)
+const addsContentPosts =
+  /\bgit\s+add\b/.test(command) &&
+  (command.includes("content/posts") ||
+    /\bgit\s+add\s+(?:-A\b|--all\b|\.(?:\s|$))/.test(command));
+
+const candidates = new Set<string>();
 try {
-  staged = execFileSync(
-    "git",
-    ["-c", "core.quotepath=off", "diff", "--cached", "--name-only", "--diff-filter=A", "--", "content/posts/*.mdx"],
-    { encoding: "utf8" }
-  );
+  // (a) 이미 staged-added 된 신규 포스트
+  for (const f of lines(
+    git(["diff", "--cached", "--name-only", "--diff-filter=A", "--", POSTS_GLOB])
+  )) {
+    candidates.add(f);
+  }
+  // (b) git add 로 곧 스테이징될 untracked 신규 포스트
+  if (addsContentPosts) {
+    for (const f of lines(
+      git(["ls-files", "--others", "--exclude-standard", "--", POSTS_GLOB])
+    )) {
+      candidates.add(f);
+    }
+  }
 } catch {
   process.exit(0); // git 저장소가 아니거나 git 실패 — 커밋을 막지 않는다
 }
 
-const targets = staged
-  .split("\n")
-  .filter(Boolean)
-  .filter((f) => existsSync(f) && !EXCLUDED_CATEGORY.test(readFileSync(f, "utf8")));
+const targets = [...candidates].filter(
+  (f) => existsSync(f) && !EXCLUDED_CATEGORY.test(readFileSync(f, "utf8"))
+);
 
 if (targets.length === 0) process.exit(0);
 
@@ -60,11 +94,12 @@ if (existsSync(SENTINEL)) {
   process.exit(0);
 }
 
-deny(`커밋 보류 — 윤문되지 않은 신규 포스트가 스테이징되어 있습니다:
+deny(`커밋 보류 — 윤문되지 않은 신규 포스트가 이 커밋에 포함됩니다:
 ${targets.map((f) => `- ${f}`).join("\n")}
 
 다음 절차를 수행한 뒤 커밋을 재시도하세요:
 1. humanize-korean 스킬의 quick-rules 룰북으로 위 파일의 본문 산문에서 AI 티를 윤문한다.
    제약: export const meta 블록·import·JSX 컴포넌트·코드 블록·인라인 코드 수정 금지, HTML 주석은 MDX 파싱 에러라 추가 금지, 의미·수치·고유명사·직접 인용 불변, register(격식) 보존, 변경률 30% 이하, AI 티가 없으면 고치지 않는다.
-2. 수정된 파일을 git add로 재스테이징한다.
-3. touch .git/humanize-ok 실행 후 동일한 git commit을 다시 실행한다.`);
+2. 수정된 파일을 git add 로 재스테이징한다.
+3. touch .git/humanize-ok 를 실행한 뒤, 별도 단계에서 git commit 을 다시 실행한다.
+   (add·touch·commit 을 && 로 한 줄에 묶으면 훅이 커밋 전 상태를 보므로 통과되지 않는다 — 센티널은 커밋 명령보다 먼저 만들어져 있어야 한다.)`);
