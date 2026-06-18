@@ -1,13 +1,17 @@
 export const meta = {
   title: "Self-Attention과 게슈탈트",
   date: "2026-05-26",
-  category: "essay",
-  tags: [],
+  category: "AI 공부 노트",
+  tags: ["PI Lab", "AI 엔지니어링", "머신러닝", "Self-Attention"],
   excerpt: "BoW에서 Self-Attention까지",
-  series: { name: "AI 공부 노트", order: 1 },
 };
 
+import { ThreeModelDiagram } from "@/components/mdx/posts/2026-05-26-1/ThreeModelDiagram";
+import { KanizsaTriangle } from "@/components/mdx/posts/2026-05-26-1/KanizsaTriangle";
+
 > 이 글은 Pi Lab AI 과정을 들으면서 정리한 노트입니다. 커리큘럼 따라 모델을 하나씩 구현해보다가 떠오른 생각들을 남겨둡니다.
+
+<OgCard url="https://paaa.ai/" />
 
 ## 별점 맞히기
 
@@ -74,6 +78,8 @@ Self-attention은 이걸 이렇게 풀어요. 단어의 표현을, 문장 안의
 
 세 모델을 나란히 놓고 보면 이렇게 정리됩니다. BoW에서는 단어들이 그냥 더해질 뿐 관계가 없어요. 임베딩에서는 단어가 다른 단어들과의 통계적 관계 안에서 위치를 얻는데, 그 위치는 고정이에요. self-attention에서는 단어가 지금 이 문장 안에서의 관계에 따라 매번 다르게 재구성돼요.
 
+<ThreeModelDiagram />
+
 부분이 모여서 전체가 되는 게 아니라, 어떤 의미에선 전체가 부분을 다시 정의해요.
 
 ## 4. 게슈탈트라는 오래된 이름
@@ -84,7 +90,11 @@ Self-attention은 이걸 이렇게 풀어요. 단어의 표현을, 문장 안의
 
 > 전체는 부분의 합 이상이다(Das Ganze ist mehr als die Summe seiner Teile).
 
-점 세 개를 찍으면 우리는 삼각형을 봐요. 점 사이엔 선이 하나도 없는데도요. 멜로디를 다른 키로 옮겨 연주해도 같은 멜로디로 들려요. 음표는 다 바뀌었는데도요.
+한 입 베어 문 동그라미 세 개를 적당히 놓으면 우리는 또렷한 삼각형을 봐요. 정작 삼각형을 이루는 선은 어디에도 그려져 있지 않은데도요.
+
+<KanizsaTriangle />
+
+멜로디를 다른 키로 옮겨 연주해도 같은 멜로디로 들려요. 음표는 다 바뀌었는데도요.
 
 부분들이 모여서 전체가 될 때 부분에는 없던 새로운 질이 생기고 그 질은 부분들 사이의 관계와 구조에서 나온다는 이야기입니다.
 
@@ -103,3 +113,5 @@ Self-attention은 이걸 이렇게 풀어요. 단어의 표현을, 문장 안의
 비트겐슈타인의 "의미는 사용이다"와 분포가설. 이 글에서 잠깐 언급했는데 제법 깊게 다룰 만한 주제에요.
 
 현상학의 지각 위계와 CNN의 계층 구조. 부분 지각이 전체 지평으로 통합되는 메를로퐁티의 묘사가 CNN이랑 묘하게 겹쳐요.
+
+서로 다른 각 분야에서 만나게 되는, 이렇게 비슷한 모양의 구조 도식을 비교해는 것도 재미있을 것 같습니다.

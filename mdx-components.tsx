@@ -1,7 +1,8 @@
 import type { MDXComponents } from "mdx/types";
 import Image, { type ImageProps } from "next/image";
-import { Q } from "@/components/mdx/Q";
-import { A } from "@/components/mdx/A";
+import { Question } from "@/components/mdx/common/Question";
+import { Answer } from "@/components/mdx/common/Answer";
+import { OgCard } from "@/components/mdx/common/OgCard";
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
@@ -16,7 +17,8 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
         {...(rest as Omit<ImageProps, "alt">)}
       />
     ),
-    Q,
-    A,
+    Question,
+    Answer,
+    OgCard,
   };
 }
