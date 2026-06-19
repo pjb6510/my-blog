@@ -3,6 +3,7 @@ import { FaGithub, FaRss } from "react-icons/fa";
 import { getAllPosts } from "@/lib/posts";
 import { site } from "@/lib/site";
 import { CategoryTag, PostDate } from "@/components/PostMeta";
+import { BrandMark } from "@/components/BrandMark";
 import { JsonLd } from "@/components/JsonLd";
 
 export default async function Landing() {
@@ -22,8 +23,9 @@ export default async function Landing() {
   return (
     <main className="relative mx-auto flex min-h-dvh max-w-6xl flex-col px-6 pb-20 pt-16 md:px-12 md:pt-24">
       <JsonLd data={jsonLd} />
-      <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-subtle">
-        ─ a personal log, est. 2026
+      <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.32em] text-subtle">
+        <BrandMark className="size-[18px] shrink-0" />
+        <span>a personal log, est. 2026</span>
       </p>
 
       <div className="mt-10 grid gap-x-16 md:grid-cols-[1.1fr_1fr] md:gap-x-20 md:items-end">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FaGithub, FaRss } from "react-icons/fa";
 import { site } from "@/lib/site";
+import { BrandMark } from "@/components/BrandMark";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function TopBar() {
@@ -9,17 +10,20 @@ export function TopBar() {
       <div className="flex h-14 items-center justify-between px-6 md:px-10">
         <Link
           href="/"
-          className="group flex items-baseline gap-2 text-foreground"
+          className="group flex items-center gap-2.5 text-foreground"
           aria-label={`${site.title} — 홈`}
         >
-          <span className="font-serif text-lg tracking-tight transition-colors group-hover:text-accent">
-            {site.title}
-          </span>
-          <span
-            aria-hidden
-            className="hidden font-mono text-[10px] uppercase tracking-[0.22em] text-subtle md:inline"
-          >
-            ─ {site.tagline}
+          <BrandMark className="size-[22px] shrink-0 transition-colors" />
+          <span className="flex items-baseline gap-2">
+            <span className="font-serif text-lg tracking-tight transition-colors group-hover:text-accent">
+              {site.title}
+            </span>
+            <span
+              aria-hidden
+              className="hidden font-mono text-[10px] uppercase tracking-[0.22em] text-subtle md:inline"
+            >
+              ─ {site.tagline}
+            </span>
           </span>
         </Link>
 
