@@ -6,12 +6,15 @@
 //   (b) 명령어가 content/posts 를 git add (또는 git add . / -A / --all) 하는 경우,
 //       아직 untracked 인 신규 포스트 — `git add X && git commit` 한 줄 호출을 커버한다.
 //       (훅은 git add 실행 전에 명령어 전체를 가로채므로, (a)만 보면 이 패턴이 빠져나간다.)
-// 통과 조건: 대상 신규 포스트 없음 / 'AI와 대화하기' 카테고리뿐 / .git/humanize-ok 센티널 존재(1회용).
+// 통과 조건: 대상 신규 포스트 없음 / 'AI와 대화하기' 카테고리뿐 / .git/humanize-ok 센티널이 신선(TTL 내)할 때(1회용).
 // 센티널은 커밋 명령과 다른 단계에서 미리 touch 해야 한다(같은 줄에 && 로 묶으면 훅 평가 시점엔 아직 없다).
+// 단, touch 후 SENTINEL_TTL_MS 안에 신규 포스트 커밋으로 소비해야 한다 — 그보다 오래되면 무효(stale)로 보고 거부한다.
+// 또한 신규 포스트가 없는 커밋이 들어오면, 남아 있던 센티널은 쓰일 곳이 없으므로 그 자리에서 정리한다.
+// (이 두 장치가 없으면 이전 세션에서 남은 센티널이 나중의 윤문 안 된 신규 포스트 커밋을 통과시킨다.)
 // 실행: node (v24 네이티브 TypeScript) — 별도 빌드·tsx 불필요
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync, statSync } from "node:fs";
 
 type HookInput = {
   tool_input?: { command?: string };
@@ -19,6 +22,9 @@ type HookInput = {
 
 const EXCLUDED_CATEGORY = /category:\s*"AI와 대화하기"/;
 const SENTINEL = ".git/humanize-ok";
+// 센티널 유효 시간(10분). 정상 흐름의 touch→commit 은 수 초이므로 넉넉하고,
+// 이전 세션에서 남은 오래된 센티널이 엉뚱한 신규 포스트 커밋을 통과시키는 것을 막는다.
+const SENTINEL_TTL_MS = 10 * 60_000;
 const POSTS_GLOB = "content/posts/*.mdx";
 
 function git(args: string[]): string {
@@ -29,6 +35,15 @@ function git(args: string[]): string {
 
 function lines(out: string): string[] {
   return out.split("\n").filter(Boolean);
+}
+
+// 센티널이 TTL 안에 만들어진 신선한 것인지. 없거나 stat 실패 시 false.
+function sentinelIsFresh(): boolean {
+  try {
+    return Date.now() - statSync(SENTINEL).mtimeMs <= SENTINEL_TTL_MS;
+  } catch {
+    return false;
+  }
 }
 
 function deny(reason: string): never {
@@ -86,12 +101,19 @@ const targets = [...candidates].filter(
   (f) => existsSync(f) && !EXCLUDED_CATEGORY.test(readFileSync(f, "utf8"))
 );
 
-if (targets.length === 0) process.exit(0);
-
-// 윤문 완료 표시(센티널): 있으면 소비하고 통과
-if (existsSync(SENTINEL)) {
-  unlinkSync(SENTINEL);
+if (targets.length === 0) {
+  // 이 커밋엔 윤문 대상 신규 포스트가 없다. 남아 있는 센티널은 쓰일 곳이 없는 stale 이므로
+  // 정리만 하고 통과한다(이전 세션의 잔존 센티널이 나중 커밋을 통과시키는 것을 막는다).
+  if (existsSync(SENTINEL)) unlinkSync(SENTINEL);
   process.exit(0);
+}
+
+// 윤문 완료 표시(센티널) 처리. 일회용이라 존재하면 무조건 소비(삭제)하되,
+// TTL 안에 만들어진 신선한 센티널일 때만 통과시킨다. 오래된(stale) 센티널은 삭제만 하고 거부로 떨어진다.
+if (existsSync(SENTINEL)) {
+  const fresh = sentinelIsFresh();
+  unlinkSync(SENTINEL);
+  if (fresh) process.exit(0);
 }
 
 deny(`커밋 보류 — 윤문되지 않은 신규 포스트가 이 커밋에 포함됩니다:
