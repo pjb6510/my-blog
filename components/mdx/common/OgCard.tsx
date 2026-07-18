@@ -100,10 +100,24 @@ function parseOg(html: string, baseUrl: string): OgData {
 const fetchOg = cache(async (url: string): Promise<OgData> => {
   try {
     const res = await fetch(url, {
+      // 일부 CDN(교보문고 CloudFront 등)은 UA만으로는 봇으로 보고 빈 페이지를
+      // 주지만, 실제 크롬의 최상위 문서 네비게이션이 항상 함께 보내는 헤더
+      // (Sec-Fetch-*, Upgrade-Insecure-Requests, sec-ch-ua)를 붙이면 통과한다.
       headers: {
-        // 일부 사이트가 봇 UA에 빈 페이지를 주므로 일반 데스크톱 UA로 요청한다.
         "user-agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "accept-language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+        "sec-ch-ua":
+          '"Chromium";v="120", "Not(A:Brand";v="24", "Google Chrome";v="120"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"macOS"',
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": "none",
+        "sec-fetch-user": "?1",
+        "upgrade-insecure-requests": "1",
       },
       next: { revalidate: 60 * 60 * 24 },
     });
