@@ -16,6 +16,7 @@ const prettyCodeOptions = {
 const withMDX = createMDX({
   extension: /\.(md|mdx)$/,
   options: {
+    remarkPlugins: [["remark-gfm"]],
     rehypePlugins: [["rehype-pretty-code", prettyCodeOptions]],
   },
 });
