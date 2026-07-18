@@ -108,7 +108,12 @@ const fetchOg = cache(async (url: string): Promise<OgData> => {
       next: { revalidate: 60 * 60 * 24 },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return parseOg(await res.text(), res.url || url);
+    const html = await res.text();
+    // 일부 CDN(예: 교보문고 CloudFront)은 봇 요청에 status 200 + 빈 본문을 준다.
+    // 이 경우 res.ok 는 true 라 위 가드를 통과하므로, 파싱할 게 없으면 여기서
+    // 실패로 처리해 아래 catch 의 최소 카드로 degrade 시킨다.
+    if (!html.trim()) throw new Error("empty body");
+    return parseOg(html, res.url || url);
   } catch {
     return { title: safeHostname(url) };
   }
