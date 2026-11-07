@@ -3,6 +3,7 @@ import Image, { type ImageProps } from "next/image";
 import { Question } from "@/components/mdx/common/Question";
 import { Answer } from "@/components/mdx/common/Answer";
 import { OgCard } from "@/components/mdx/common/OgCard";
+import { PostCard } from "@/components/mdx/common/PostCard";
 import { YouTube } from "@/components/mdx/common/YouTube";
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
@@ -21,6 +22,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     Question,
     Answer,
     OgCard,
+    PostCard,
     YouTube,
   };
 }
